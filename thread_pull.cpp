@@ -1,6 +1,7 @@
-#define A_SIZE 10
+#define A_SIZE 1024 * 1024
 
 #include <iostream>
+#include <ctime>
 #include <thread>
 #include <atomic>
 #include <vector>
@@ -14,13 +15,21 @@ using namespace std;
 struct StateData {
     mutable mutex m;
     condition_variable c;
+    atomic_bool task_done;
+
+    StateData() {
+        task_done = false;
+    }
 
     void Wait() {
-        unique_lock<mutex> lock(m);
-        c.wait(lock);
+        if (!task_done) {
+            unique_lock<mutex> lock(m);
+            c.wait(lock);
+        }
     }
 
     void Finish() {
+        task_done = true;
         c.notify_one();
     }
 };
@@ -47,6 +56,7 @@ private:
             sort_function sf;
             if (work_queue.try_pop(sf)) {
                 sf.task(sf.a, sf.st, sf.fn);
+                sf.state->Finish();
             }
         }
     }
@@ -79,8 +89,8 @@ public:
 void merge(int* A, int st, int mid, int fn) {
     int n_l = mid - st + 1;
     int n_r = fn - mid;
-    int* L = new int[A_SIZE];
-    int* R = new int[A_SIZE];
+    int* L = new int[n_l + 1];
+    int* R = new int[n_r + 1];
     for (int i = 0; i < n_l; ++i) {
         L[i] = A[st + i];
     }
@@ -114,24 +124,84 @@ void merge_sort(int* a, int st, int fn) {
     }
 }
 
-int main() {
-    int* A = new int[A_SIZE];
-    for (int i = 0; i < A_SIZE; ++i) {
-        A[i] = 100 - i;
+void global_merge(int* A, int n) {
+    if (n == 1) {
+        return;
     }
+    else if (n == 2) {
+        merge(A, 0, A_SIZE / 2 - 1, A_SIZE - 1);
+    }
+    else if (n == 3) {
+        merge(A, 0, A_SIZE / 3 - 1, 2 * A_SIZE / 3 - 1);
+        merge(A, 0, 2 * A_SIZE / 3 - 1, A_SIZE - 1);
+    }
+    else if (n == 4) {
+        merge(A, 0, A_SIZE / 4 - 1, 2 * A_SIZE / 4 - 1);
+        merge(A, 2 * A_SIZE / 4, 3 * A_SIZE / 4 - 1, A_SIZE - 1);
+        merge(A, 0, A_SIZE / 2 - 1, A_SIZE - 1);
+    }
+}
 
-    thread_pool tp;
-    sort_function sf {merge_sort, A, 0, A_SIZE - 1};
-    tp.submit(sf);
-    sf.state->Wait();
+void print_A(int* A) {
+    for (int i = 0; i < A_SIZE; ++i) {
+        cout << A[i] << " ";
+    }
+    cout << endl;
+}
 
+bool check(int* A) {
+    bool ans = true;
 
-//    std::this_thread::sleep_for (std::chrono::seconds(1));
-//    for (int i = 0; i < A_SIZE; ++i) {
-//        cout << A[i] << " ";
-//    }
-//    cout << endl;
-    delete[] A;
+    int cur = A[0];
+    for (int i = 1; i < A_SIZE; ++i) {
+        if (A[i] < cur) {
+            ans = false;
+            break;
+        }
+    }
+    return ans;
+}
+
+int main() {
+    int max_number_of_threads = 4;
+
+    cout <<  "A_SIZE = " << A_SIZE << endl;
+    for (unsigned int i = 1; i <= max_number_of_threads; ++i)
+    {
+        int* A = new int[A_SIZE];
+        for (int i = 0; i < A_SIZE; ++i) {
+            A[i] = 100 - i;
+        }
+
+        thread_pool tp;
+        vector<State> states;
+        int interval = A_SIZE / i;
+
+        clock_t start;
+        start = clock();
+        for (int j = 0; j < i; ++j) {
+            int st = j * interval;
+            int fn = (j == (i - 1)) ? A_SIZE - 1 : (st - 1 + interval);
+            State state{new StateData};
+            states.push_back(state);
+            sort_function sf {merge_sort, A, st, fn, state};
+            tp.submit(sf);
+        }
+        for (int j = 0; j < i; ++j) {
+            states[j]->Wait();
+        }
+
+        global_merge(A, i);
+        //cout << (check(A) ? "CORRECT" : "NOT CORRECT") << endl;
+        //cout << "Number of threads: " << i << endl;
+        //cout << "Time: " << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000) 
+        //                 << " ms" << std::endl;
+        cout << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << endl;
+
+        //cout << endl;
+
+        delete[] A;
+    }
 
     return 0;
 }

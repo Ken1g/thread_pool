@@ -21,7 +21,6 @@ public:
                 threads[i].join();
             }
         }
-        cout << "Threads were joined" << endl;
     }
 };
 
