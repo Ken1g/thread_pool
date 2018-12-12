@@ -192,13 +192,11 @@ int main() {
         }
 
         global_merge(A, i);
-        //cout << (check(A) ? "CORRECT" : "NOT CORRECT") << endl;
-        //cout << "Number of threads: " << i << endl;
-        //cout << "Time: " << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000) 
-        //                 << " ms" << std::endl;
-        cout << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000) << endl;
-
-        //cout << endl;
+        cout << (check(A) ? "CORRECT" : "NOT CORRECT") << endl;
+        cout << "Number of threads: " << i << endl;
+        cout << "Time: " << (clock() - start) / (double)(CLOCKS_PER_SEC / 1000) 
+                         << " ms" << std::endl;
+        cout << endl;
 
         delete[] A;
     }
