@@ -1,4 +1,4 @@
-#define A_SIZE 1024 * 1024
+#define A_SIZE 12345678
 
 #include <iostream>
 #include <ctime>
@@ -125,20 +125,10 @@ void merge_sort(int* a, int st, int fn) {
 }
 
 void global_merge(int* A, int n) {
-    if (n == 1) {
-        return;
-    }
-    else if (n == 2) {
-        merge(A, 0, A_SIZE / 2 - 1, A_SIZE - 1);
-    }
-    else if (n == 3) {
-        merge(A, 0, A_SIZE / 3 - 1, 2 * A_SIZE / 3 - 1);
-        merge(A, 0, 2 * A_SIZE / 3 - 1, A_SIZE - 1);
-    }
-    else if (n == 4) {
-        merge(A, 0, A_SIZE / 4 - 1, 2 * A_SIZE / 4 - 1);
-        merge(A, 2 * A_SIZE / 4, 3 * A_SIZE / 4 - 1, A_SIZE - 1);
-        merge(A, 0, A_SIZE / 2 - 1, A_SIZE - 1);
+    for (int i = 0; i < n - 1; ++i) {
+        int l = (i + 1) * (A_SIZE / n) - 1;
+        int r = (i == n - 2) ? A_SIZE - 1 : l + (A_SIZE / n);
+        merge(A, 0, l, r);
     }
 }
 
@@ -151,10 +141,8 @@ void print_A(int* A) {
 
 bool check(int* A) {
     bool ans = true;
-
-    int cur = A[0];
     for (int i = 1; i < A_SIZE; ++i) {
-        if (A[i] < cur) {
+        if (A[i] < A[i - 1]) {
             ans = false;
             break;
         }
@@ -163,7 +151,7 @@ bool check(int* A) {
 }
 
 int main() {
-    int max_number_of_threads = 4;
+    int max_number_of_threads = 6;
 
     cout <<  "A_SIZE = " << A_SIZE << endl;
     for (unsigned int i = 1; i <= max_number_of_threads; ++i)

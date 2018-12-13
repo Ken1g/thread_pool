@@ -1,3 +1,3 @@
 run:
-	g++ -std=c++11 -pthread thread_pull.cpp
+	g++ -std=c++11 -pthread thread_pool.cpp
 	./a.out
